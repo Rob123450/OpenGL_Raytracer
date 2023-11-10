@@ -25,6 +25,9 @@ struct Ray{
 // RaycastFrag()
 
 
+// This could potentially come later
+// Denoiser()
+
 vec3 computeDiffuse(vec3 N, vec3 L){
       return material_color * clamp(dot(L,N), 0.,1.);
 }
