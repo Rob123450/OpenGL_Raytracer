@@ -32,6 +32,36 @@ def build_buffers(object):
 
     return vao, vbo, object.n_vertices
 
+# Handles keyboard inputs
+# Increments or decrements camera rotation inputs
+def input_handler():
+    X_coord = 0
+    Y_coord = 0
+    pressed_inputs = pg.key.get_pressed()
+    if (pressed_inputs[pg.K_w]):
+        X_coord = 0.05
+    
+    if (pressed_inputs[pg.K_s]):
+        X_coord = -0.05
+
+    if (pressed_inputs[pg.K_a]):
+        Y_coord = 0.05
+
+    if (pressed_inputs[pg.K_d]):
+        Y_coord = -0.05
+
+    return [X_coord, Y_coord]
+
+
+# Sets the up position to [0, -1, 0] if the camera is anywhere in quadrants 2 or 3 of its rotation
+def set_camera_rotation(rotX):
+    up = [0, 1, 0]
+    if (np.deg2rad((rotX)) % (2 * np.pi) > (np.pi / 2) and np.deg2rad(rotX) % (2 * np.pi) < (3 * np.pi / 2)):
+        up = [0, -1, 0]
+    
+    return up
+
+# PROGRAM START
 # Initialize pygame
 pg.init()
 
@@ -53,14 +83,14 @@ glEnable(GL_DEPTH_TEST)
 shaderProgram = shaderLoaderV3.ShaderProgram("shaders/vert.glsl", "shaders/frag.glsl")
 
 # Camera parameters
-eye = (0,3,4)
+eye = (0,0,6)
 target = (0,-1,0)
 up = (0,1,0)
 
 fov = 45
 aspect = width/height
-near = 0.1
-far = 10
+near = 2
+far = 20
 
 view_mat  = pyrr.matrix44.create_look_at(eye, target, up)
 projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov, aspect, near, far)
@@ -102,15 +132,15 @@ vao_plane, vbo_plane, n_vertices_plane = build_buffers(obj_plane)
 gui = SimpleGUI("Assignment 7")
 
 # Create a slider for the rotation angle around the Z axis
-camera_rotY_slider = gui.add_slider("camera Y angle", -180, 180, 0, resolution=0.01)
-camera_rotYspeed_slider = gui.add_slider("camera Y rotation speed", 0, 1, 0.5, resolution=0.01)
-camera_rotX_slider = gui.add_slider("camera X angle", -90, 90, 0, resolution=1)
 fov_slider = gui.add_slider("fov", 25, 90, 45, resolution=1)
 
 
 material_color_picker = gui.add_color_picker("material color", initial_color=material_color)
 light_type_radio_button = gui.add_radio_buttons("light type", options_dict={"point":1, "directional":0}, initial_option="point")
 timer = 1
+rotation_values = []
+rotX = 0
+rotY = 0
 
 # Run a loop to keep the program running
 draw = True
@@ -125,8 +155,14 @@ while draw:
     # Rotates light and camera
     timer += 1 * 0.01
 
-    rotateY_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(camera_rotY_slider.get_value() + timer))
-    rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(camera_rotX_slider.get_value()))
+    rotation_values = input_handler()
+    rotX += rotation_values[0]
+    rotY += rotation_values[1]
+
+    up = set_camera_rotation(rotX)
+
+    rotateY_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(rotY))
+    rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(rotX))
     rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
     rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
 
