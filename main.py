@@ -37,22 +37,22 @@ def build_buffers(object):
 # Increments or decrements camera rotation inputs
 def input_handler():
     global eye
-    global target
+    global camera_forward
     global deltaTime
     pressed_inputs = pg.key.get_pressed()
 
     cameraSpeed = 2.5 * deltaTime
-    if (pressed_inputs[pg.K_w]):
-        eye += cameraSpeed * target
+    if (pressed_inputs[pg.K_w] or pressed_inputs[pg.K_UP]):
+        eye += cameraSpeed * camera_forward
     
-    if (pressed_inputs[pg.K_s]):
-        eye -= cameraSpeed * target
+    if (pressed_inputs[pg.K_s] or pressed_inputs[pg.K_DOWN]):
+        eye -= cameraSpeed * camera_forward
 
-    if (pressed_inputs[pg.K_a]):
-        eye -= (np.cross(target, up)) * cameraSpeed
+    if (pressed_inputs[pg.K_a] or pressed_inputs[pg.K_LEFT]):
+        eye -= (np.cross(camera_forward, up)) * cameraSpeed
 
-    if (pressed_inputs[pg.K_d]):
-        eye += (np.cross(target, up)) * cameraSpeed
+    if (pressed_inputs[pg.K_d] or pressed_inputs[pg.K_RIGHT]):
+        eye += (np.cross(camera_forward, up)) * cameraSpeed
 
 
 # PROGRAM START
@@ -78,7 +78,7 @@ shaderProgram = shaderLoaderV3.ShaderProgram("shaders/vert.glsl", "shaders/frag.
 
 # Camera parameters
 eye = np.array([0,0,6], dtype=np.float32)
-target = np.array([0, 0, -1], dtype=np.float32)
+camera_forward = np.array([0, 0, -1], dtype=np.float32)
 up = np.array([0,1,0], dtype=np.float32)
 
 fov = 45
@@ -86,7 +86,7 @@ aspect = width/height
 near = 2
 far = 20
 
-view_mat  = pyrr.matrix44.create_look_at(eye, target, up)
+view_mat  = pyrr.matrix44.create_look_at(eye, camera_forward, up)
 projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov, aspect, near, far)
 
 # light and material properties
@@ -153,7 +153,7 @@ while draw:
 
     input_handler()
 
-    view_mat = pyrr.matrix44.create_look_at(eye, eye + target, up)
+    view_mat = pyrr.matrix44.create_look_at(eye, eye + camera_forward, up)
     projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(),
                                                                         aspect, near,  far)
 
