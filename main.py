@@ -2,6 +2,7 @@
 import pygame as pg
 from OpenGL.GL import *
 import numpy as np
+import time
 
 from guiV3 import SimpleGUI
 from objLoaderV4 import ObjLoader
@@ -35,31 +36,24 @@ def build_buffers(object):
 # Handles keyboard inputs
 # Increments or decrements camera rotation inputs
 def input_handler():
-    X_coord = 0
-    Y_coord = 0
+    global eye
+    global target
+    global deltaTime
     pressed_inputs = pg.key.get_pressed()
+
+    cameraSpeed = 2.5 * deltaTime
     if (pressed_inputs[pg.K_w]):
-        X_coord = 0.05
+        eye += cameraSpeed * target
     
     if (pressed_inputs[pg.K_s]):
-        X_coord = -0.05
+        eye -= cameraSpeed * target
 
     if (pressed_inputs[pg.K_a]):
-        Y_coord = 0.05
+        eye -= (np.cross(target, up)) * cameraSpeed
 
     if (pressed_inputs[pg.K_d]):
-        Y_coord = -0.05
+        eye += (np.cross(target, up)) * cameraSpeed
 
-    return [X_coord, Y_coord]
-
-
-# Sets the up position to [0, -1, 0] if the camera is anywhere in quadrants 2 or 3 of its rotation
-def set_camera_rotation(rotX):
-    up = [0, 1, 0]
-    if (np.deg2rad((rotX)) % (2 * np.pi) > (np.pi / 2) and np.deg2rad(rotX) % (2 * np.pi) < (3 * np.pi / 2)):
-        up = [0, -1, 0]
-    
-    return up
 
 # PROGRAM START
 # Initialize pygame
@@ -83,9 +77,9 @@ glEnable(GL_DEPTH_TEST)
 shaderProgram = shaderLoaderV3.ShaderProgram("shaders/vert.glsl", "shaders/frag.glsl")
 
 # Camera parameters
-eye = (0,0,6)
-target = (0,-1,0)
-up = (0,1,0)
+eye = np.array([0,0,6], dtype=np.float32)
+target = np.array([0, 0, -1], dtype=np.float32)
+up = np.array([0,1,0], dtype=np.float32)
 
 fov = 45
 aspect = width/height
@@ -137,10 +131,10 @@ fov_slider = gui.add_slider("fov", 25, 90, 45, resolution=1)
 
 material_color_picker = gui.add_color_picker("material color", initial_color=material_color)
 light_type_radio_button = gui.add_radio_buttons("light type", options_dict={"point":1, "directional":0}, initial_option="point")
-timer = 1
-rotation_values = []
-rotX = 0
-rotY = 0
+
+# timing
+deltaTime = 0.0
+lastFrame = 0.0
 
 # Run a loop to keep the program running
 draw = True
@@ -153,32 +147,25 @@ while draw:
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     # Rotates light and camera
-    timer += 1 * 0.01
+    currentFrame = time.time()
+    deltaTime = currentFrame - lastFrame
+    lastFrame = currentFrame
 
-    rotation_values = input_handler()
-    rotX += rotation_values[0]
-    rotY += rotation_values[1]
+    input_handler()
 
-    up = set_camera_rotation(rotX)
-
-    rotateY_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(rotY))
-    rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(rotX))
-    rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
-    rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
-
-    view_mat = pyrr.matrix44.create_look_at(rotated_eye, target, up)
+    view_mat = pyrr.matrix44.create_look_at(eye, eye + target, up)
     projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(),
                                                                         aspect, near,  far)
 
     # Rotates the light over time, uses same sin, cos and ShaderToy example with a smaller coefficient
-    light_pos = np.array([np.sin(timer*0.1), 1, np.cos(timer*0.1), None], dtype=np.float32)
+    #light_pos = np.array([np.sin(timer*0.1), 1, np.cos(timer*0.1), None], dtype=np.float32)
     light_pos[3] = light_type_radio_button.get_value()
 
     # Set uniforms
     shaderProgram["model_matrix"] = model_mat
     shaderProgram["view_matrix"] = view_mat
     shaderProgram["projection_matrix"] = projection_mat
-    shaderProgram["eye_pos"] = rotated_eye
+    shaderProgram["eye_pos"] = eye
     shaderProgram["material_color"] = material_color_picker.get_color()
     shaderProgram["light_pos"] = light_pos
 
