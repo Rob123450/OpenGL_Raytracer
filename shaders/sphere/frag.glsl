@@ -94,6 +94,10 @@ float sphereIntersectPoint(Ray ray)
       return INFINITY;
 }
 
+vec3 compute_reflection_vector(vec3 vector, vec3 axis)
+{
+      return vector - 2 * dot(axis,vector) * axis;
+}
 
 // RaycastFrag()
 
@@ -186,33 +190,53 @@ void main()
                   Change ray
             Potentially multiply by diffuse color
       */
+
+      vec3 raycastColor;
       Ray ray;
       ray.origin = eye_pos;
       ray.direction = normalize(fragPosition - eye_pos);
-      float min_distance = sphereIntersectPoint(ray);
+      vec3 illumination = vec3(0.0);
+      float reflection = 1;
+      for (int i = 0; i < NUMBOUNCES; i++)
+      {
+            float min_distance = sphereIntersectPoint(ray);
 
-      vec3 intersection = ray.origin + min_distance * ray.direction;
-      vec3 normal_to_surface = normalize(center - intersection);
-      vec3 shifted_point = intersection + 0.0001 * normal_to_surface;
+            if (min_distance == INFINITY)
+                  break;
 
-      vec3 intersection_to_light = normalize(light_pos.xyz - shifted_point);
-      float intersection_to_light_distance = length(light_pos.xyz - intersection);
-      Ray light_check;
-      light_check.origin = shifted_point;
-      light_check.direction = intersection_to_light;
-      min_distance = sphereIntersectPoint(light_check);
-      
-      
-      bool is_shadowed = min_distance < intersection_to_light_distance;
-      vec3 raycastColor;
-      if (is_shadowed)
-            raycastColor = vec3(0.0);
-      else
-            raycastColor = vec3(1.0);
-      // if (min_distance == INFINITY)
-      //       raycastColor = vec3(0.0);
+            // Implement ray hitting light source
+            illumination += pbrColor;
+            raycastColor += reflection * illumination;
+
+            vec3 intersection = ray.origin + min_distance * ray.direction;
+            vec3 normal_to_surface = normalize(intersection - center);
+            vec3 shifted_point = intersection + 0.0001 * normal_to_surface;
+
+            vec3 intersection_to_light = normalize(light_pos.xyz - shifted_point);
+            float intersection_to_light_distance = length(light_pos.xyz - intersection);
+            float shadow_factor = 0.5;
+            Ray light_check;
+            light_check.origin = shifted_point;
+            light_check.direction = intersection_to_light;
+            min_distance = sphereIntersectPoint(light_check);
+            
+            
+            bool is_shadowed = min_distance < intersection_to_light_distance;
+            
+            if (is_shadowed)
+                  break;
+
+            ray.origin = shifted_point;
+            ray.direction = compute_reflection_vector(ray.direction, normal_to_surface);
+      }
+
+      // if (is_shadowed)
       // else
-      //       raycastColor = intersection;
+            // raycastColor = pbrColor;
+      // if (min_distance == INFINITY)
+      //       raycastColor = vec3(0.0, 0.0, 1.0);
+      // else
+      //       raycastColor = vec3(1.0);
 
       outColor = vec4(raycastColor, 1.0);
 }

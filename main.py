@@ -78,7 +78,7 @@ def input_handler():
     pressed_inputs = pg.key.get_pressed()
 
     cameraSpeed = 2.5 * deltaTime
-    mouseSens = 0.5
+    mouseSens = 0.2
     if (pressed_inputs[pg.K_w] or pressed_inputs[pg.K_UP]):
         eye += cameraSpeed * camera_forward
     
@@ -152,7 +152,7 @@ projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov, aspect,
 
 # light and material properties
 material_color = (1.0, 0.1, 0.1)
-light_pos = np.array([2, 1, 2, None], dtype=np.float32)
+light_pos = np.array([3, 1, 3, None], dtype=np.float32)
 # last component is for light type (0: directional, 1: point) which is changed by radio button
 # *************************************************************************
 
@@ -165,8 +165,8 @@ obj_cube = ObjLoader("objects/cube.obj")
 obj_cube_scale = 0.5 / obj_cube.dia
 
 # *********** Lets define model matrix ***********
-translation_mat = pyrr.matrix44.create_from_translation(-obj.center)
-scaling_mat = pyrr.matrix44.create_from_scale([2 / obj.dia, 2 / obj.dia, 2 / obj.dia])
+translation_mat = pyrr.matrix44.create_from_translation([0, 0, 0])
+scaling_mat = pyrr.matrix44.create_from_scale([1, 1, 1])
 model_mat = pyrr.matrix44.multiply(scaling_mat, translation_mat)
 
 
@@ -275,9 +275,9 @@ while draw:
 
     lightYRotation = lightY_slider.get_value()
     lightXRotation = lightX_slider.get_value()
-    light_pos[0] = np.cos(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
-    light_pos[1] = np.sin(np.radians(lightXRotation))
-    light_pos[2] = np.sin(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
+    # light_pos[0] = np.cos(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
+    # light_pos[1] = np.sin(np.radians(lightXRotation))
+    # light_pos[2] = np.sin(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
 
     # Set uniforms
     shaderProgram["model_matrix"] = model_mat
@@ -290,7 +290,7 @@ while draw:
     shaderProgram["roughness"] = roughness_slider.get_value()
     shaderProgram["ambient_intensity"] = ambient_intensity_slider.get_value()
     shaderProgram["mat_type"] = int(material_picker.get_value())
-    shaderProgram["center"] = obj.center
+    shaderProgram["center"] = [0, 0, 0]
     shaderProgram["radius"] = obj.dia / 2
 
     glUseProgram(shaderProgram_sphere.shader)
