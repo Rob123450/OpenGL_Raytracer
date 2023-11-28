@@ -1,5 +1,6 @@
 # Import necessary libraries
 import pygame as pg
+import pygame.mouse
 from OpenGL.GL import *
 import numpy as np
 import time
@@ -75,38 +76,58 @@ def input_handler():
     global deltaTime
     global yaw
     global pitch
+
     pressed_inputs = pg.key.get_pressed()
+    # If the escape button is pressed or mouse is not focused keep camera where it is
 
-    cameraSpeed = 2.5 * deltaTime
-    mouseSens = 0.2
-    if (pressed_inputs[pg.K_w] or pressed_inputs[pg.K_UP]):
-        eye += cameraSpeed * camera_forward
-    
-    if (pressed_inputs[pg.K_s] or pressed_inputs[pg.K_DOWN]):
-        eye -= cameraSpeed * camera_forward
+    if(pg.mouse.get_focused() and pg.mouse.get_pressed(3)):
+        focus = True
 
-    if (pressed_inputs[pg.K_a] or pressed_inputs[pg.K_LEFT]):
-        eye -= (np.cross(camera_forward, up)) * cameraSpeed
 
-    if (pressed_inputs[pg.K_d] or pressed_inputs[pg.K_RIGHT]):
-        eye += (np.cross(camera_forward, up)) * cameraSpeed
+    if (pressed_inputs[pg.K_ESCAPE] or focus == False):
+        focus = False
 
-    dx, dy = pg.mouse.get_rel()
-    yaw += mouseSens * dx
-    pitch -= mouseSens * dy
+    if(focus):
+        pygame.mouse.set_pos(screen_center)
+        pygame.mouse.set_visible(False)
 
-    if (pitch > 89):
-        pitch = 89
+        cameraSpeed = 2.5 * deltaTime
+        mouseSens = 0.2
+        if (pressed_inputs[pg.K_w] or pressed_inputs[pg.K_UP]):
+            eye += cameraSpeed * camera_forward
 
-    if (pitch < -89):
-        pitch = -89
+        if (pressed_inputs[pg.K_s] or pressed_inputs[pg.K_DOWN]):
+            eye -= cameraSpeed * camera_forward
 
-    forward = np.array([0, 0, 0,], dtype=np.float32)
-    forward[0] = np.cos(np.radians(yaw)) * np.cos(np.radians(pitch))
-    forward[1] = np.sin(np.radians(pitch))
-    forward[2] = np.sin(np.radians(yaw)) * np.cos(np.radians(pitch))
-    camera_forward = forward
-    
+        if (pressed_inputs[pg.K_a] or pressed_inputs[pg.K_LEFT]):
+            eye -= (np.cross(camera_forward, up)) * cameraSpeed
+
+        if (pressed_inputs[pg.K_d] or pressed_inputs[pg.K_RIGHT]):
+            eye += (np.cross(camera_forward, up)) * cameraSpeed
+
+        dx, dy = pg.mouse.get_rel()
+        # reset mouse position to center
+        pygame.mouse.set_pos(screen_center)
+        yaw += mouseSens * dx
+        pitch -= mouseSens * dy
+
+        if (pitch > 89):
+            pitch = 89
+
+        if (pitch < -89):
+            pitch = -89
+
+        forward = np.array([0, 0, 0,], dtype=np.float32)
+        forward[0] = np.cos(np.radians(yaw)) * np.cos(np.radians(pitch))
+        forward[1] = np.sin(np.radians(pitch))
+        forward[2] = np.sin(np.radians(yaw)) * np.cos(np.radians(pitch))
+        camera_forward = forward
+
+    else:
+        pygame.mouse.set_visible(True)
+        eye = eye
+        camera_forward = camera_forward
+        return
 
 
 # PROGRAM START
@@ -122,6 +143,10 @@ pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
 # height = 500
 width = 1920
 height = 1080
+
+screen_center = [width / 2, height / 2]
+focus = True
+
 pg.display.set_mode((width, height), pg.OPENGL | pg.DOUBLEBUF)
 
 
