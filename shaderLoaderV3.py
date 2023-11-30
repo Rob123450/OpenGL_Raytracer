@@ -9,12 +9,14 @@ def load_shader(shader_file):
     f.close()
     return str.encode(shader_source)
 
-def compile_shader(vs, fs):
+def compile_shader(vs, fs, cs):
     vert_shader = load_shader(vs)
     frag_shader = load_shader(fs)
+    compute_shader = load_shader(cs)
 
     shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(vert_shader, GL_VERTEX_SHADER),
-                                              OpenGL.GL.shaders.compileShader(frag_shader, GL_FRAGMENT_SHADER))
+                                              OpenGL.GL.shaders.compileShader(frag_shader, GL_FRAGMENT_SHADER),
+                                              OpenGL.GL.shaders.compileShader(compute_shader, GL_COMPUTE_SHADER))
     return shader
 
 
