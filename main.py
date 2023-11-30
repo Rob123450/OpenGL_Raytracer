@@ -76,6 +76,7 @@ def input_handler():
     global deltaTime
     global yaw
     global pitch
+    global focus
 
     pressed_inputs = pg.key.get_pressed()
     # If the escape button is pressed or mouse is not focused keep camera where it is
