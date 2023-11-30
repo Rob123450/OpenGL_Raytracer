@@ -202,7 +202,7 @@ fov_slider = gui.add_slider("fov", 25, 90, 90, resolution=1)
 lightY_slider = gui.add_slider("light Y angle", -180, 180, 0, resolution=1)
 lightX_slider = gui.add_slider("light X angle", -180, 180, 0, resolution=1)
 camY_slider = gui.add_slider("camera Y angle", -180, 180, 0, resolution=1)
-camX_slider = gui.add_slider("camera X angle", -90, 90, 0, resolution=1)
+camX_slider = gui.add_slider("camera X angle", -180, 180, 0, resolution=1)
 light_color_slider = gui.add_color_picker(label_text="Light Color", initial_color=(1.0, 1.0, 1.0))
 ambient_intensity_slider = gui.add_slider("Ambient Intensity", 0, 1, 0.1, resolution=0.1)
 roughness_slider = gui.add_slider("Roughness", 0, 1, 0.5, resolution=0.01)
@@ -266,6 +266,9 @@ while draw:
     shaderProgram_sphere["cameraW"] = pyrr.Vector3([view_mat[0][2], view_mat[1][2], view_mat[2][2]])
 
     shaderProgram_sphere["resolution"] = np.array([width, height], dtype=np.float32)
+
+    shaderProgram_sphere["ambient_intensity"] = ambient_intensity_slider.get_value()
+    shaderProgram_sphere["lightColor"] = [1.0, 1.0, 1.0]
 
     glUseProgram(shaderProgram_sphere.shader)
     glBindVertexArray(vao_obj)
