@@ -138,6 +138,7 @@ pg.init()
 # Set up OpenGL context version
 pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
 pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
+pg.display.gl_set_attribute(pg.GL_STENCIL_SIZE, 8)
 
 # Create a window for graphics using OpenGL
 # width = 900
@@ -161,7 +162,8 @@ shaderProgram_skybox = shaderLoaderV3.ShaderProgram("shaders/skybox/vert.glsl", 
 shaderProgram_sphere = shaderLoaderV3.ShaderProgram("shaders/sphere/vert.glsl", "shaders/sphere/frag.glsl")
 
 # Camera parameters
-eye = np.array([0,0,6], dtype=np.float32)
+eye = np.array([0,0,2], dtype=np.float32)
+target = (0, 0, 0)
 camera_forward = np.array([0, 0, -1], dtype=np.float32)
 up = np.array([0,1,0], dtype=np.float32)
 
@@ -173,99 +175,34 @@ aspect = width/height
 near = 0.1
 far = 100
 
-view_mat  = pyrr.matrix44.create_look_at(eye, camera_forward, up)
-projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov, aspect, near, far)
-
 # light and material properties
 material_color = (1.0, 0.1, 0.1)
-light_pos = np.array([3, 1, 3, None], dtype=np.float32)
+light_pos = np.array([0, 10, 0, None], dtype=np.float32)
 # last component is for light type (0: directional, 1: point) which is changed by radio button
 # *************************************************************************
-
-
-# Lets load our objects
-obj = ObjLoader("objects/sphere.obj")
-obj_plane = ObjLoader("objects/square.obj")
-obj_cube = ObjLoader("objects/cube.obj")
-
-obj_cube_scale = 0.5 / obj_cube.dia
-
-# *********** Lets define model matrix ***********
-translation_mat = pyrr.matrix44.create_from_translation([0, 0, 0])
-scaling_mat = pyrr.matrix44.create_from_scale([1, 1, 1])
-model_mat = pyrr.matrix44.multiply(scaling_mat, translation_mat)
-
-
-# *********** Defining light sphere ***********
-translation_mat = pyrr.matrix44.create_from_translation(light_pos)
-scaling_mat = pyrr.matrix44.create_from_scale([2 / obj.dia, 2 / obj.dia, 2 / obj.dia])
-model_mat_light_sphere = pyrr.matrix44.multiply(scaling_mat, translation_mat)
-
-# *********** Defining ground plane ***********
-rotation_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(90))
-translation_mat = pyrr.matrix44.create_from_translation([0, -1, 0])
-scaling_mat = pyrr.matrix44.create_from_scale([100, 100, 100])
-model_mat_plane = pyrr.matrix44.multiply(scaling_mat, rotation_mat)
-model_mat_plane = pyrr.matrix44.multiply(model_mat_plane, translation_mat)
-
-# *********** Defining top wall cube ***********
-rotation_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(-90))
-translation_mat = pyrr.matrix44.create_from_translation([0, 2 + obj_cube_scale, 0])
-scaling_mat = pyrr.matrix44.create_from_scale([2, 2, obj_cube_scale])
-model_mat_top_plane = pyrr.matrix44.multiply(scaling_mat, rotation_mat)
-model_mat_top_plane = pyrr.matrix44.multiply(model_mat_top_plane, translation_mat)
-
-# *********** Defining left wall cube ***********
-rotation_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(90))
-translation_mat = pyrr.matrix44.create_from_translation([-2 + obj_cube_scale, 0, 0])
-scaling_mat = pyrr.matrix44.create_from_scale([2, 2, obj_cube_scale])
-model_mat_left_plane = pyrr.matrix44.multiply(scaling_mat, rotation_mat)
-model_mat_left_plane = pyrr.matrix44.multiply(model_mat_left_plane, translation_mat)
-
-# *********** Defining right wall cube ***********
-rotation_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(90))
-translation_mat = pyrr.matrix44.create_from_translation([2 - obj_cube_scale, 0, 0])
-scaling_mat = pyrr.matrix44.create_from_scale([2, 2, obj_cube_scale])
-model_mat_right_cube = pyrr.matrix44.multiply(scaling_mat, rotation_mat)
-model_mat_right_cube = pyrr.matrix44.multiply(model_mat_right_cube, translation_mat)
-
-# *********** Defining back wall cube ***********
-rotation_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(0))
-translation_mat = pyrr.matrix44.create_from_translation([0, 0, -2 + obj_cube_scale])
-scaling_mat = pyrr.matrix44.create_from_scale([2, 2, obj_cube_scale])
-model_mat_back_cube = pyrr.matrix44.multiply(scaling_mat, rotation_mat)
-model_mat_back_cube = pyrr.matrix44.multiply(model_mat_back_cube, translation_mat)
-
-# ***** Create VAO, VBO, and configure vertex attributes for object 1 *****
-# VAO
+# Obj and attributes
+obj = ObjLoader("objects/square.obj")
 vao_obj, vbo_obj, n_vertices_obj = build_buffers(obj)
-vao_groundPlane, vbo_groundPlane, n_vertices_plane = build_buffers(obj_plane)
-vao_topPlane, vbo_topPlane, n_vertices_topPlane = build_buffers(obj_cube)
-vao_leftPlane, vbo_leftPlane, n_vertices_leftPlane = build_buffers(obj_cube)
-vao_rightCube, vbo_rightCube, n_vertices_rightCube = build_buffers(obj_cube)
-vao_backCube, vbo_backCube, n_vertices_backCube = build_buffers(obj_cube)
-vao_lightSphere, vbo_lightSphere, n_vertices_lightSphere = build_buffers(obj)
+
+# matrices
+#model_mat = pyrr.matrix44.create_from_translation(-obj.center)
+scaling_mat = pyrr.matrix44.create_from_scale(pyrr.Vector3([0.5, 0.5, 0.5]))
+#model_mat = pyrr.matrix44.multiply(model_mat, scaling_mat)
+model_mat = scaling_mat
+
+
 # *************************************************************************
-# Loading cubemap
-cubemap_images = ["images/skybox1/right.png", "images/skybox1/left.png",
-                  "images/skybox1/top.png", "images/skybox1/bottom.png",
-                  "images/skybox1/front.png", "images/skybox1/back.png"]
-cubemap_id = load_cubemap_texture(cubemap_images)
-
-shaderProgram_skybox["cubeMapTex"] = 0
-
 
 gui = SimpleGUI("Raytracing")
 
 # Create a slider for the rotation angle around the Z axis
-fov_slider = gui.add_slider("fov", 25, 90, 45, resolution=1)
+fov_slider = gui.add_slider("fov", 25, 90, 90, resolution=1)
 
 
 lightY_slider = gui.add_slider("light Y angle", -180, 180, 0, resolution=1)
 lightX_slider = gui.add_slider("light X angle", -180, 180, 0, resolution=1)
-camY_slider = gui.add_slider("camera Y angle", -180, 180, -32, resolution=1)
-camX_slider = gui.add_slider("camera X angle", -90, 90, 13, resolution=1)
-camFov_slider = gui.add_slider("field of view", 25, 90, 35, resolution=1)
+camY_slider = gui.add_slider("camera Y angle", -180, 180, 0, resolution=1)
+camX_slider = gui.add_slider("camera X angle", -90, 90, 0, resolution=1)
 light_color_slider = gui.add_color_picker(label_text="Light Color", initial_color=(1.0, 1.0, 1.0))
 ambient_intensity_slider = gui.add_slider("Ambient Intensity", 0, 1, 0.1, resolution=0.1)
 roughness_slider = gui.add_slider("Roughness", 0, 1, 0.5, resolution=0.01)
@@ -292,11 +229,19 @@ while draw:
     deltaTime = currentFrame - lastFrame
     lastFrame = currentFrame
 
-    input_handler()
+    # input_handler()
 
-    view_mat = pyrr.matrix44.create_look_at(eye, eye + camera_forward, up)
-    projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(),
-                                                                        aspect, near,  far)
+    rotateY_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(camY_slider.get_value()))
+    rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(camX_slider.get_value()))
+    rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
+    rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
+
+    view_mat = pyrr.matrix44.create_look_at(rotated_eye, target, up)
+    projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(), aspect, near,  far)
+
+    #view_mat = pyrr.matrix44.create_look_at(eye, target, up)
+    #projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(),
+                                                                        #aspect, near,  far)
 
 
     lightYRotation = lightY_slider.get_value()
@@ -306,97 +251,25 @@ while draw:
     # light_pos[2] = np.sin(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
 
     # Set uniforms
-    shaderProgram["model_matrix"] = model_mat
-    shaderProgram["view_matrix"] = view_mat
-    shaderProgram["projection_matrix"] = projection_mat
-    shaderProgram["eye_pos"] = eye
-    shaderProgram["light_pos"] = light_pos
-    shaderProgram["lightColor"] = light_color_slider.get_color()
-    shaderProgram["metallic"] = metallic_slider.get_value()
-    shaderProgram["roughness"] = roughness_slider.get_value()
-    shaderProgram["ambient_intensity"] = ambient_intensity_slider.get_value()
-    shaderProgram["mat_type"] = int(material_picker.get_value())
-    shaderProgram["center"] = [0, 0, 0]
-    shaderProgram["radius"] = obj.dia / 2
+    # Set the uniform variables
+    shaderProgram_sphere["model_matrix"] = model_mat
+    shaderProgram_sphere["light_pos"] = light_pos
+    shaderProgram_sphere["eye_pos"] = rotated_eye
+    shaderProgram_sphere["fov"] = np.deg2rad(fov_slider.get_value())
+
+    # min and max bounds (coordinates) of Axis Aligned Bounding Box
+    shaderProgram_sphere["minBound"] = (-0.5, -0.5, -0.5)
+    shaderProgram_sphere["maxBound"] = (0.5, 0.5, 0.5)
+
+    shaderProgram_sphere["cameraU"] = pyrr.Vector3([view_mat[0][0], view_mat[1][0], view_mat[2][0]])
+    shaderProgram_sphere["cameraV"] = pyrr.Vector3([view_mat[0][1], view_mat[1][1], view_mat[2][1]])
+    shaderProgram_sphere["cameraW"] = pyrr.Vector3([view_mat[0][2], view_mat[1][2], view_mat[2][2]])
+
+    shaderProgram_sphere["resolution"] = np.array([width, height], dtype=np.float32)
 
     glUseProgram(shaderProgram_sphere.shader)
     glBindVertexArray(vao_obj)
-    shaderProgram_sphere["model_matrix"] = model_mat
-    shaderProgram_sphere["view_matrix"] = view_mat
-    shaderProgram_sphere["projection_matrix"] = projection_mat
-    shaderProgram_sphere["eye_pos"] = eye
-    shaderProgram_sphere["light_pos"] = light_pos
-    shaderProgram_sphere["lightColor"] = light_color_slider.get_color()
-    shaderProgram_sphere["metallic"] = metallic_slider.get_value()
-    shaderProgram_sphere["roughness"] = roughness_slider.get_value()
-    shaderProgram_sphere["ambient_intensity"] = ambient_intensity_slider.get_value()
-    shaderProgram_sphere["mat_type"] = int(material_picker.get_value())
-    shaderProgram_sphere["center"] = [0, 0, 0]
-    shaderProgram_sphere["radius"] = obj.dia / 2
-
     glDrawArrays(GL_TRIANGLES, 0, obj.n_vertices)      # draw the object
-
-    glUseProgram(shaderProgram.shader)
-
-    shaderProgram["model_matrix"] = model_mat_plane
-    shaderProgram["mat_type"] = 1
-    glBindVertexArray(vao_groundPlane)
-    glDrawArrays(GL_TRIANGLES, 0, obj_plane.n_vertices)
-
-    # Drawing Top Cube
-    shaderProgram["metallic"] = 0.0
-    shaderProgram["roughness"] = 1.00
-    shaderProgram["mat_type"] = 3
-    shaderProgram["model_matrix"] = model_mat_top_plane
-    glBindVertexArray(vao_topPlane)
-    glDrawArrays(GL_TRIANGLES, 0, obj_cube.n_vertices)
-
-    # Drawing Left Cube
-    shaderProgram["metallic"] = 0.0
-    shaderProgram["roughness"] = 1.00
-    shaderProgram["mat_type"] = 2
-    shaderProgram["model_matrix"] = model_mat_left_plane
-    glBindVertexArray(vao_leftPlane)
-    glDrawArrays(GL_TRIANGLES, 0, obj_cube.n_vertices)
-
-    # Drawing Right Cube
-    shaderProgram["metallic"] = 0.0
-    shaderProgram["roughness"] = 1.00
-    shaderProgram["mat_type"] = 5
-    shaderProgram["model_matrix"] = model_mat_right_cube
-    glBindVertexArray(vao_rightCube)
-    glDrawArrays(GL_TRIANGLES, 0, obj_cube.n_vertices)
-
-    # Drawing Back Cube
-    shaderProgram["metallic"] = 0.0
-    shaderProgram["roughness"] = 1.00
-    shaderProgram["mat_type"] = 4
-    shaderProgram["model_matrix"] = model_mat_back_cube
-    glBindVertexArray(vao_backCube)
-    glDrawArrays(GL_TRIANGLES, 0, obj_cube.n_vertices)
-
-    shaderProgram["metallic"] = 0.0
-    shaderProgram["roughness"] = 1.00
-    shaderProgram["mat_type"] = 3
-    shaderProgram["ambient_intensity"] = 1.0
-    translation_mat = pyrr.matrix44.create_from_translation(light_pos)
-    scaling_mat = pyrr.matrix44.create_from_scale([0.5 / obj.dia, 0.5 / obj.dia, 0.5 / obj.dia])
-    model_mat_light_sphere = pyrr.matrix44.multiply(scaling_mat, translation_mat)
-    shaderProgram["model_matrix"] = model_mat_light_sphere
-    glBindVertexArray(vao_lightSphere)
-    glDrawArrays(GL_TRIANGLES, 0, obj.n_vertices)
-
-    # Drawing the cube map
-    # view_mat_without_translation = view_mat.copy()
-    # view_mat_without_translation[3][:3] = [0,0,0]
-
-    # # compute the inverse of the view (one without translation)- projection matrix
-    # inverseViewProjection_mat = pyrr.matrix44.inverse(pyrr.matrix44.multiply(view_mat_without_translation,projection_mat))
-    # glDepthFunc(GL_LEQUAL)
-    # glUseProgram(shaderProgram_skybox.shader)
-    # shaderProgram_skybox["invViewProjectionMatrix"] = inverseViewProjection_mat
-    # glBindVertexArray(vao_quad)
-    # glDrawArrays(GL_TRIANGLES, 0, obj_plane.n_vertices)
 
 
     # ****************************************************************************************************
@@ -407,8 +280,8 @@ while draw:
 
 
 # Cleanup
-glDeleteVertexArrays(1, [vao_obj, vao_groundPlane])
-glDeleteBuffers(1, [vbo_obj, vbo_groundPlane])
+glDeleteVertexArrays(1, [vao_obj])
+glDeleteBuffers(1, [vbo_obj])
 glDeleteProgram(shaderProgram.shader)
 
 pg.quit()   # Close the graphics window

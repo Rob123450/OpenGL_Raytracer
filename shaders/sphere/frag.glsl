@@ -9,32 +9,26 @@ out vec4 outColor;
 in vec3 fragNormal;
 in vec3 fragPosition;
 
-uniform vec3 center;
-uniform float radius;
-
 //PBR Uniforms
 uniform vec4 light_pos;
 uniform vec3 eye_pos;
-uniform float ambient_intensity;
-uniform float roughness;
-uniform float metallic;
-uniform int mat_type;
-uniform vec3 lightColor;
-uniform vec3 material_color;
 // Raytracing Uniforms
 
-uniform vec3 Background;
 uniform vec2 resolution;
 uniform vec3 cameraU;
 uniform vec3 cameraV;
 uniform vec3 cameraW;
-uniform vec3 cameraEye;
+//uniform vec3 cameraEye;
 uniform float fov;
 
-uniform vec3 minBound;
-uniform vec3 maxBound;
+//uniform vec3 minBound;
+//uniform vec3 maxBound;
 
-
+struct Sphere{
+      float radius;
+      vec3 center;
+      vec3 color;
+};
 
 struct Hit{
     float d;
@@ -61,7 +55,7 @@ vec3 pointOnRay(in Ray ray, float t){
 Ray getRay(vec2 pixel)
 {
       Ray ray;
-      ray.origin = cameraEye;
+      ray.origin = eye_pos;
       float height = 2.*tan(fov/2.);
       float aspect = resolution.x/resolution.y;
       float width = height * aspect;
@@ -74,25 +68,48 @@ Ray getRay(vec2 pixel)
       return ray;
 }
 
-float sphereIntersectPoint(Ray ray)
+Hit sphereIntersectPoint(Sphere sphere, Ray ray)
 {
-      float b = 2 * dot(ray.direction, ray.origin - center);
-      float magnitude = length(ray.origin - center);
-      float c = pow(magnitude, 2) - pow(radius, 2);
-      float delta = pow(b, 2) - (4 * c);
+      Hit hit = Hit(-1.0, vec3(0.0), vec3(0));
+      vec3 magnitude = ray.origin - sphere.center;
+      float a = dot(ray.direction, ray.direction);
+      float b = 2 * dot(ray.direction, ray.origin - sphere.center);
+      float c = dot(magnitude, magnitude) - pow(sphere.radius, 2);
+      float delta = pow(b, 2) - (4.0 * a * c);
       if (delta > 0)
       {
-            float t1 = (-b + sqrt(delta)) / 2;
-            float t2 = (-b - sqrt(delta)) / 2;
-
-            if (t1 > 0 && t2 > 0)
-            {
-                  return min(t1, t2);
-            }
+            float t1 = (-b + sqrt(delta)) / (2.0 * a);
+            float t2 = (-b - sqrt(delta)) / (2.0 * a);
+            ray.tMin = t1;
+            ray.tMax = t2;
+            hit.d = min(t1, t2);
+            hit.point = ray.origin + hit.d * ray.direction;
+            hit.normal = normalize(hit.point - sphere.center);
       }
 
-      return INFINITY;
+      return hit;
 }
+
+// Sphere nearest_intersected_object(Sphere[2] spheres, Ray ray)
+// {
+//       float[spheres.length] distances;
+//       for (int i = 0; i < spheres.length; i++)
+//       {
+//             distances[i] = sphereIntersectPoint(spheres[i], ray);
+//       }
+//       float min_distance = INFINITY;
+//       Sphere nearest_object;
+//       for (int i = 0; i < distances.length; i++)
+//       {
+//             if (distances[i] < min_distance)
+//             {
+//                   min_distance = distances[i];
+//                   nearest_object = spheres[i];
+//             }
+//       }
+
+//       return nearest_object;
+// }
 
 vec3 compute_reflection_vector(vec3 vector, vec3 axis)
 {
@@ -106,79 +123,123 @@ vec3 compute_reflection_vector(vec3 vector, vec3 axis)
 // Denoiser()
 
 //The following 3 Funcitons are necessary for PBR feature
-vec3 computeDiffuse(vec3 N, vec3 L, vec3 F, vec3 material_color){
+// vec3 computeDiffuse(vec3 N, vec3 L, vec3 F, vec3 material_color){
 
-      vec3 ks = F;
-      vec3 Kd = 1-ks;
+//       vec3 ks = F;
+//       vec3 Kd = 1-ks;
 
-      return  Kd * (1-metallic) * material_color * max(dot(N, L), 0);
-}
+//       return  Kd * (1-metallic) * material_color * max(dot(N, L), 0);
+// }
 
-float geometric_attenuation(vec3 N, vec3 V, vec3 L)
+// float geometric_attenuation(vec3 N, vec3 V, vec3 L)
+// {
+//       float alpha = pow(roughness,2);
+//       float k = (alpha) / 2;
+
+//       // Masking Term
+//       float Gv = clamp(dot(V, N), 0., 1.) / (clamp(dot(N, V), 0., 1.) * (1-k) + k);
+//       // Shadowing Term
+//       float Gl = clamp(dot(L, N), 0., 1.) / (clamp(dot(L, N), 0., 1.) * (1-k) + k);
+
+//       return Gv * Gl;
+// }
+
+// float microfacet_distribution(vec3 N, vec3 H)
+// {
+//       float alpha = pow(roughness,2);
+//       return pow(alpha, 2) / (PI * pow((pow(max(dot(H, N),0),2) * (pow(alpha,2) - 1) + 1),2));
+// }
+
+
+// vec3 computePBR()
+// {
+//       vec3 Background = vec3(0.0);
+//       vec3 N = normalize(fragNormal);
+//       vec3 L = normalize(light_pos.xyz - fragPosition);
+
+//       //if (light_pos.w==0.0)   L = normalize(light_pos.xyz);                   // directional light
+//       //else                    L = normalize(light_pos.xyz-fragPosition);      // point light
+
+//       vec3 V = normalize(eye_pos-fragPosition);
+//       vec3 H = normalize(L + V);
+
+//       vec3 F0_metal;
+//       vec3 F0_dielectric = vec3(.04,.04,.04);
+
+//       // Metals
+//       if(mat_type == 1)       F0_metal = vec3(0.56,0.57,0.58);
+//       else if (mat_type == 2) F0_metal = vec3(0.95,0.64,0.54);
+//       else if (mat_type == 3) F0_metal = vec3(1.00,0.71,0.29);
+//       else if (mat_type == 4) F0_metal = vec3(0.91,0.92,0.92);
+//       else if (mat_type == 5) F0_metal = vec3(0.95,0.93,0.88);
+
+//       vec3 material_color = F0_metal;
+//       vec3 F0 = mix(F0_dielectric,F0_metal,metallic);
+
+//       vec3 F = F0 + (1 - F0) * pow( (1-clamp(dot(H,V), 0, 1)), 5 );
+
+//       float G = geometric_attenuation(N,V,L);
+
+//       float D = microfacet_distribution(N,H);
+
+//       vec3 microfacet = F * D * G;
+
+//       vec3 diffuseColor = computeDiffuse(N, L, F, material_color);
+
+//       vec3 ambientColor = ambient_intensity * material_color;
+
+//       vec3 specularColor = microfacet * lightColor;
+
+//       return vec3(ambientColor + specularColor + diffuseColor);
+// }
+
+vec3 pixelColor(Sphere sphere, vec2 pixel)
 {
-      float alpha = pow(roughness,2);
-      float k = (alpha) / 2;
+      vec3 color = normalize(vec3(127.0, 255.0, 212.0));
+      Ray ray = getRay(pixel);
+      Hit hit = sphereIntersectPoint(sphere, ray);
+      sphere.color = vec3(0.0, 0.0, 0.7);
+      if (hit.d > 0)
+      {
+            vec3 shifted_point = hit.point + hit.normal * 0.0001;
+            vec3 intersection_to_light = normalize(light_pos.xyz - shifted_point);
+            float intersection_to_light_distance = length(light_pos.xyz - hit.point);
+            float shadow_factor = 0.2;
+            Ray light_check;
+            light_check.origin = shifted_point;
+            light_check.direction = intersection_to_light;
+            Hit min_distance = sphereIntersectPoint(sphere, light_check);
+            // return normalize(min_distance.point);
+            
+            bool is_shadowed = min_distance.d > 0;
+            
+            if (is_shadowed)
+            {
+                  return (sphere.color * shadow_factor * exp(pow(min_distance.d, 10)));
+            }
+            else
+            {
+                  return sphere.color;
+            }
+      }
 
-      // Masking Term
-      float Gv = clamp(dot(V, N), 0., 1.) / (clamp(dot(N, V), 0., 1.) * (1-k) + k);
-      // Shadowing Term
-      float Gl = clamp(dot(L, N), 0., 1.) / (clamp(dot(L, N), 0., 1.) * (1-k) + k);
+      
 
-      return Gv * Gl;
+      return color;
 }
-
-float microfacet_distribution(vec3 N, vec3 H)
-{
-      float alpha = pow(roughness,2);
-      return pow(alpha, 2) / (PI * pow((pow(max(dot(H, N),0),2) * (pow(alpha,2) - 1) + 1),2));
-}
-
-
-vec3 computePBR()
-{
-      vec3 N = normalize(fragNormal);
-      vec3 L = normalize(light_pos.xyz - fragPosition);
-
-      //if (light_pos.w==0.0)   L = normalize(light_pos.xyz);                   // directional light
-      //else                    L = normalize(light_pos.xyz-fragPosition);      // point light
-
-      vec3 V = normalize(eye_pos-fragPosition);
-      vec3 H = normalize(L + V);
-
-      vec3 F0_metal;
-      vec3 F0_dielectric = vec3(.04,.04,.04);
-
-      // Metals
-      if(mat_type == 1)       F0_metal = vec3(0.56,0.57,0.58);
-      else if (mat_type == 2) F0_metal = vec3(0.95,0.64,0.54);
-      else if (mat_type == 3) F0_metal = vec3(1.00,0.71,0.29);
-      else if (mat_type == 4) F0_metal = vec3(0.91,0.92,0.92);
-      else if (mat_type == 5) F0_metal = vec3(0.95,0.93,0.88);
-
-      vec3 material_color = F0_metal;
-      vec3 F0 = mix(F0_dielectric,F0_metal,metallic);
-
-      vec3 F = F0 + (1 - F0) * pow( (1-clamp(dot(H,V), 0, 1)), 5 );
-
-      float G = geometric_attenuation(N,V,L);
-
-      float D = microfacet_distribution(N,H);
-
-      vec3 microfacet = F * D * G;
-
-      vec3 diffuseColor = computeDiffuse(N, L, F, material_color);
-
-      vec3 ambientColor = ambient_intensity * material_color;
-
-      vec3 specularColor = microfacet * lightColor;
-
-      return vec3(ambientColor + specularColor + diffuseColor);
-}
-
 
 void main()
 {
-      vec3 pbrColor = computePBR();
+      Sphere[2] spheres;
+
+      spheres[0].radius = 1.0;
+      spheres[0].center = vec3(0.0);
+      spheres[1].radius = 5.0;
+      spheres[1].center = vec3(0.0);
+      // vec3 pbrColor = computePBR();
+
+      spheres[0].color = vec3(1.0);
+      spheres[1].color = vec3(1.0);
 
       //outColor = vec4(ambientColor + diffuseColor + specular_color,1.0);
 
@@ -191,52 +252,62 @@ void main()
             Potentially multiply by diffuse color
       */
 
-      vec3 raycastColor;
-      Ray ray;
-      ray.origin = eye_pos;
-      ray.direction = normalize(fragPosition - eye_pos);
-      vec3 illumination = vec3(0.0);
-      float reflection = 1;
-      for (int i = 0; i < NUMBOUNCES; i++)
-      {
-            float min_distance = sphereIntersectPoint(ray);
+      // vec3 raycastColor = vec3(0.0);
+      // Ray ray;
+      // ray.origin = eye_pos;
+      // ray.direction = normalize(fragPosition - eye_pos);
+      // vec3 illumination = vec3(0.0);
+      // float reflection = 1;
+      // for (int i = 0; i < NUMBOUNCES; i++)
+      // {
+      //       Sphere nearest_object = nearest_intersected_object(spheres, ray);
+      //       float min_distance = sphereIntersectPoint(spheres[i], ray);
 
-            if (min_distance == INFINITY)
-                  break;
+      //       if (min_distance == INFINITY)
+      //       {
+      //             raycastColor = vec3(1.0);
+      //             break;
+      //       }
 
-            // Implement ray hitting light source
-            illumination += pbrColor;
-            raycastColor += reflection * illumination;
+      //       // Implement ray hitting light source
+      //       //illumination = vec3(0.0);
+      //       //illumination += pbrColor;
+      //       //raycastColor += reflection * illumination;
+      //       raycastColor = vec3(1.0);
 
-            vec3 intersection = ray.origin + min_distance * ray.direction;
-            vec3 normal_to_surface = normalize(intersection - center);
-            vec3 shifted_point = intersection + 0.0001 * normal_to_surface;
+      //       vec3 intersection = ray.origin + min_distance * ray.direction;
+      //       vec3 normal_to_surface = normalize(intersection - center);
+      //       vec3 shifted_point = intersection + 0.0001 * normal_to_surface;
 
-            vec3 intersection_to_light = normalize(light_pos.xyz - shifted_point);
-            float intersection_to_light_distance = length(light_pos.xyz - intersection);
-            float shadow_factor = 0.5;
-            Ray light_check;
-            light_check.origin = shifted_point;
-            light_check.direction = intersection_to_light;
-            min_distance = sphereIntersectPoint(light_check);
+      //       vec3 intersection_to_light = normalize(light_pos.xyz - shifted_point);
+      //       float intersection_to_light_distance = length(light_pos.xyz - intersection);
+      //       float shadow_factor = 0.5;
+      //       Ray light_check;
+      //       light_check.origin = shifted_point;
+      //       light_check.direction = intersection_to_light;
+      //       min_distance = sphereIntersectPoint(spheres[i], light_check);
             
             
-            bool is_shadowed = min_distance < intersection_to_light_distance;
+      //       bool is_shadowed = min_distance < intersection_to_light_distance;
             
-            if (is_shadowed)
-                  break;
+      //       if (is_shadowed)
+      //       {
+      //             raycastColor = vec3(1.0);
+      //             break;
+      //       }
 
-            ray.origin = shifted_point;
-            ray.direction = compute_reflection_vector(ray.direction, normal_to_surface);
-      }
+      //       ray.origin = shifted_point;
+      //       ray.direction = compute_reflection_vector(ray.direction, normal_to_surface);
+      // }
 
       // if (is_shadowed)
       // else
-            // raycastColor = pbrColor;
+      //       raycastColor = pbrColor;
       // if (min_distance == INFINITY)
       //       raycastColor = vec3(0.0, 0.0, 1.0);
       // else
       //       raycastColor = vec3(1.0);
 
-      outColor = vec4(raycastColor, 1.0);
+      //outColor = vec4(pixelColor(spheres[0], gl_FragCoord.xy), 1.0);
+      outColor = vec4(pixelColor(spheres[0], gl_FragCoord.xy), 1.0);
 }
