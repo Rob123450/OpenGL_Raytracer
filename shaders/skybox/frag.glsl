@@ -1,14 +1,14 @@
-#version 330 core
+#version 430 core
 
-uniform samplerCube cubeMapTex;
-uniform mat4 invViewProjectionMatrix;
+layout (binding = 0) uniform samplerCube cubeMapTex;
+uniform mat4 inViewProjectionMatrix;
 
 in vec2 clipboxPosition;
 out vec4 outColor;
 
 void main()
 {
-    vec4 direction_4d = invViewProjectionMatrix * vec4(clipboxPosition, 1, 1);
+    vec4 direction_4d = inViewProjectionMatrix * vec4(clipboxPosition, 1, 1);
     vec3 direction_3d = normalize(direction_4d.xyz / direction_4d.w);
     outColor = texture(cubeMapTex, direction_3d);
 }

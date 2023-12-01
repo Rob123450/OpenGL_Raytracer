@@ -175,6 +175,40 @@ aspect = width/height
 near = 0.1
 far = 100
 
+quad_vertices = (
+            # Position
+            -1, -1,
+             1, -1,
+             1,  1,
+             1,  1,
+            -1,  1,
+            -1, -1
+)
+vertices = np.array(quad_vertices, dtype=np.float32)
+
+quad_n_vertices = len(vertices) // 2
+
+vao_quad = glGenVertexArrays(1)
+glBindVertexArray(vao_quad)
+vbo_quad = glGenBuffers(1)
+glBindBuffer(GL_ARRAY_BUFFER, vbo_quad)
+glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
+position_loc = 0
+glBindAttribLocation(shaderProgram_skybox.shader, position_loc, "position")
+glVertexAttribPointer(position_loc, 2, GL_FLOAT, GL_FALSE, 8, ctypes.c_void_p(0))
+glEnableVertexAttribArray(position_loc)
+
+cube_map_images = ['images/skybox1/right.png', 'images/skybox1/left.png',
+                   'images/skybox1/top.png', 'images/skybox1/bottom.png',
+                   'images/skybox1/front.png', 'images/skybox1/back.png']
+
+skybox_id = load_cubemap_texture(cube_map_images)
+
+shaderProgram_skybox['cubeMapTex'] = 0
+
+
+
 # light and material properties
 material_color = (1.0, 0.1, 0.1)
 light_pos = np.array([0, 10, 0, None], dtype=np.float32)
@@ -204,7 +238,7 @@ lightX_slider = gui.add_slider("light X angle", -180, 180, 0, resolution=1)
 camY_slider = gui.add_slider("camera Y angle", -180, 180, 0, resolution=1)
 camX_slider = gui.add_slider("camera X angle", -180, 180, 0, resolution=1)
 light_color_slider = gui.add_color_picker(label_text="Light Color", initial_color=(1.0, 1.0, 1.0))
-ambient_intensity_slider = gui.add_slider("Ambient Intensity", 0, 1, 0.1, resolution=0.1)
+ambient_intensity_slider = gui.add_slider("Ambient Intensity", 1, 10, 1, resolution=0.1)
 roughness_slider = gui.add_slider("Roughness", 0, 1, 0.5, resolution=0.01)
 metallic_slider = gui.add_slider("Metallic", 0, 1, 0.5, resolution=0.01)
 material_picker = gui.add_radio_buttons("Material", options_dict={"Iron":1, "Copper":2, "Gold":3, "Aluminum":4, "Silver":5}, initial_option="Gold")
@@ -213,6 +247,7 @@ material_picker = gui.add_radio_buttons("Material", options_dict={"Iron":1, "Cop
 deltaTime = 0.0
 lastFrame = 0.0
 
+shaderProgram_skybox['cubeMapTex'] = 0
 
 # Run a loop to keep the program running
 draw = True
@@ -238,6 +273,11 @@ while draw:
 
     view_mat = pyrr.matrix44.create_look_at(rotated_eye, target, up)
     projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(), aspect, near,  far)
+
+    view_mat_without_translation = view_mat.copy()
+    view_mat_without_translation[3][:3] = [0, 0, 0]
+
+    inverseViewProjection_mat = pyrr.matrix44.inverse(pyrr.matrix44.multiply(view_mat_without_translation, projection_mat))
 
     #view_mat = pyrr.matrix44.create_look_at(eye, target, up)
     #projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(),
@@ -270,9 +310,21 @@ while draw:
     shaderProgram_sphere["ambient_intensity"] = ambient_intensity_slider.get_value()
     shaderProgram_sphere["lightColor"] = [1.0, 1.0, 1.0]
 
+    glActiveTexture(GL_TEXTURE0)
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_id)
+
     glUseProgram(shaderProgram_sphere.shader)
     glBindVertexArray(vao_obj)
     glDrawArrays(GL_TRIANGLES, 0, obj.n_vertices)      # draw the object
+
+
+    glDepthFunc(GL_LEQUAL)
+    glUseProgram(shaderProgram_skybox.shader)
+    shaderProgram_skybox["inViewProjectionMatrix"] = inverseViewProjection_mat
+    glBindVertexArray(vao_quad)
+    glDrawArrays(GL_TRIANGLES, 0, quad_n_vertices)
+
+    glDepthFunc(GL_LESS)
 
 
     # ****************************************************************************************************
@@ -283,9 +335,11 @@ while draw:
 
 
 # Cleanup
-glDeleteVertexArrays(1, [vao_obj])
-glDeleteBuffers(1, [vbo_obj])
+glDeleteVertexArrays(1, [vao_obj, vao_quad])
+glDeleteBuffers(1, [vbo_obj, vbo_obj])
 glDeleteProgram(shaderProgram.shader)
+glDeleteProgram(shaderProgram_skybox.shader)
+glDeleteProgram(shaderProgram_sphere.shader)
 
 pg.quit()   # Close the graphics window
 quit()      # Exit the program
