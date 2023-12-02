@@ -247,8 +247,6 @@ material_picker = gui.add_radio_buttons("Material", options_dict={"Iron":1, "Cop
 deltaTime = 0.0
 lastFrame = 0.0
 
-shaderProgram_skybox['cubeMapTex'] = 0
-
 # Run a loop to keep the program running
 draw = True
 while draw:
