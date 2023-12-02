@@ -162,7 +162,7 @@ shaderProgram_skybox = shaderLoaderV3.ShaderProgram("shaders/skybox/vert.glsl", 
 shaderProgram_sphere = shaderLoaderV3.ShaderProgram("shaders/sphere/vert.glsl", "shaders/sphere/frag.glsl")
 
 # Camera parameters
-eye = np.array([0,0,2], dtype=np.float32)
+eye = np.array([0,0,3], dtype=np.float32)
 target = (0, 0, 0)
 camera_forward = np.array([0, 0, -1], dtype=np.float32)
 up = np.array([0,1,0], dtype=np.float32)
@@ -262,14 +262,15 @@ while draw:
     deltaTime = currentFrame - lastFrame
     lastFrame = currentFrame
 
-    # input_handler()
+    input_handler()
 
-    rotateY_mat = pyrr.matrix44.create_from_y_rotation(np.deg2rad(camY_slider.get_value()))
-    rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(camX_slider.get_value()))
-    rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
-    rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
+    #rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(camX_slider.get_value()))
+    #rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
+    #rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
 
-    view_mat = pyrr.matrix44.create_look_at(rotated_eye, target, up)
+
+
+    view_mat = pyrr.matrix44.create_look_at(eye, camera_forward, up)
     projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(), aspect, near,  far)
 
     view_mat_without_translation = view_mat.copy()
@@ -292,7 +293,7 @@ while draw:
     # Set the uniform variables
     shaderProgram_sphere["model_matrix"] = model_mat
     shaderProgram_sphere["light_pos"] = light_pos
-    shaderProgram_sphere["eye_pos"] = rotated_eye
+    shaderProgram_sphere["eye_pos"] = eye
     shaderProgram_sphere["fov"] = np.deg2rad(fov_slider.get_value())
 
     # min and max bounds (coordinates) of Axis Aligned Bounding Box

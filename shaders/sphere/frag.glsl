@@ -42,6 +42,11 @@ struct Sphere{
       Material mat;
 };
 
+struct Plane{
+      vec3 point;
+      vec3 normal;
+};
+
 struct Hit{
     float d;
     vec3 point;
@@ -218,22 +223,6 @@ vec3 computePBR(Sphere sphere, Ray ray, Hit hit)
       return vec3(ambientColor + specularColor + diffuseColor);
 }
 
-// vec3 GetLighting(Material mat, Hit hit, Ray ray, vec3 intersection_to_light)
-// {
-//       float diff = max(dot(-intersection_to_light, hit.normal), 0.0);
-
-//       vec3 reflect_dir = compute_reflection_vector(ray.direction, hit.normal);
-
-//       float spec = pow(max(dot(hit.normal, reflect_dir), 0.0), mat.k_s);
-      
-//       vec3 col = mat.color * lightColor * (diff * mat.k_d + spec * mat.k_r);
-
-//       return col;
-// }
-
-// Accidentally made black hole effect, need to find a way to make the reflections be less warped.
-// It seems like the reflections are being output to a small radius than the actual radius of the sphere.
-// Try messing with the function logic
 vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
 {
       float reflection = 1.0;
@@ -294,6 +283,7 @@ vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
       return final_color;
 }
 
+
 void main()
 {
       Sphere[2] spheres;
@@ -314,6 +304,8 @@ void main()
       spheres[1].mat.metallic = 0.5;
       spheres[1].mat.roughness = 0.5;
       spheres[1].mat.mat_type = 3;
+
+
 
       //outColor = vec4(ambientColor + diffuseColor + specular_color,1.0);
 
