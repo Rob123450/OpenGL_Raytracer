@@ -108,7 +108,7 @@ def input_handler():
 
         dx, dy = pg.mouse.get_rel()
         # reset mouse position to center
-        pygame.mouse.set_pos(screen_center)
+        #pygame.mouse.set_pos(screen_center)
         yaw += mouseSens * dx
         pitch -= mouseSens * dy
 
@@ -270,7 +270,7 @@ while draw:
 
 
 
-    view_mat = pyrr.matrix44.create_look_at(eye, camera_forward, up)
+    view_mat = pyrr.matrix44.create_look_at(eye, eye + camera_forward, up)
     projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(), aspect, near,  far)
 
     view_mat_without_translation = view_mat.copy()

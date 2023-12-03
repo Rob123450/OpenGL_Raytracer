@@ -118,7 +118,7 @@ Hit sphereIntersectPoint(Sphere sphere, Ray ray)
       return hit;
 }
 
-Sphere nearest_intersected_object(Sphere[2] spheres, Ray ray)
+Sphere nearest_intersected_object(Sphere[16] spheres, Ray ray)
 {
       Hit[spheres.length] distances;
       for (int i = 0; i < spheres.length; i++)
@@ -137,14 +137,12 @@ Sphere nearest_intersected_object(Sphere[2] spheres, Ray ray)
       }
 
       if (min_distance == INFINITY)
+      {
+            nearest_object.radius = 0.0;
             nearest_object.mat.color = vec3(0.0);
+      }
 
       return nearest_object;
-}
-
-vec3 compute_reflection_vector(vec3 vector, vec3 axis)
-{
-      return vector - 2.0 * dot(axis,vector) * axis;
 }
 
 // RaycastFrag()
@@ -223,7 +221,7 @@ vec3 computePBR(Sphere sphere, Ray ray, Hit hit)
       return vec3(ambientColor + specularColor + diffuseColor);
 }
 
-vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
+vec3 pixelColor(Sphere[16] spheres, vec2 pixel)
 {
       float reflection = 1.0;
       vec3 background = normalize(vec3(127.0, 255.0, 212.0));
@@ -232,9 +230,10 @@ vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
       Hit hit = sphereIntersectPoint(closest_sphere, ray);
       vec3 color = vec3(0.0);
       vec3 final_color = vec3(0.0);
+      int counter = 0;
       if (hit.d < 0.0)
       {
-            return texture(cubeMapTex, compute_reflection_vector(ray.direction, hit.normal)).rgb;
+            return texture(cubeMapTex, reflect(ray.direction, hit.normal)).rgb;
       }
 
       for (int i = 0; i < 10; i++)
@@ -246,7 +245,7 @@ vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
                   vec3 shifted_point = hit.point + hit.normal * 0.0001;
                   vec3 intersection_to_light = normalize(light_pos.xyz - shifted_point);
                   float intersection_to_light_distance = length(light_pos.xyz - hit.point);
-                  float shadow_factor = 0.2;
+                  float shadow_factor = 0.8;
                   Ray light_check;
                   light_check.origin = shifted_point;
                   light_check.direction = intersection_to_light;
@@ -257,6 +256,8 @@ vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
                   
                   // if (is_shadowed)
                   // {
+                  //       color = texture(cubeMapTex, reflect(ray.direction, hit.normal)).rgb;
+                  //       final_color += color * exp(-1.0 / intersection_to_light_distance);
                   //       break;
                   // }
                   
@@ -265,19 +266,23 @@ vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
 
                   color += computePBR(closest_sphere, ray, hit);
                   final_color += color * reflection;
-                  // reflection *= closest_sphere.mat.k_r;
+                  reflection *= (1 - closest_sphere.mat.roughness);
 
                   ray.origin = shifted_point;
-                  ray.direction = compute_reflection_vector(ray.direction, normalize(hit.normal + noise1(0)));
-                  if (dot(ray.direction, hit.normal) < 0)
-                        ray.direction = -ray.direction;
+                  ray.direction = reflect(ray.direction, hit.normal);
+
             }
             else
             {
-                  color = texture(cubeMapTex, compute_reflection_vector(-ray.direction, hit.normal)).rgb;
-                  final_color += color * reflection;
+                  // if (dot(ray.direction, hit.normal) < 0)
+                  //       ray.direction = -ray.direction;
+                  color = texture(cubeMapTex, reflect(ray.direction, hit.normal)).rgb;
+                  final_color += color;
+                  //final_color /= counter;
                   break;
             }
+
+            counter++;
       }
 
       return final_color;
@@ -286,24 +291,39 @@ vec3 pixelColor(Sphere[2] spheres, vec2 pixel)
 
 void main()
 {
-      Sphere[2] spheres;
+      Sphere[16] spheres;
 
-      spheres[0].radius = 1.0;
-      spheres[0].center = vec3(0.0);
-      // vec3 pbrColor = computePBR();
+      // spheres[0].radius = 1.0;
+      // spheres[0].center = vec3(1.0);
+      // // vec3 pbrColor = computePBR();
 
-      spheres[0].mat.color = vec3(0.0, 0.0, 1.0);
-      spheres[0].mat.metallic = 0.5;
-      spheres[0].mat.roughness = 0.5;
-      spheres[0].mat.mat_type = 1;
+      // spheres[0].mat.color = normalize(vec3(0.7, 0.7, 0.0));
+      // spheres[0].mat.metallic = 0.1;
+      // spheres[0].mat.roughness = 0.001;
+      // spheres[0].mat.mat_type = 1;
 
-      spheres[1].radius = 0.25;
-      spheres[1].center = vec3(-2.0, 1.0, 0.0);
+      // spheres[1].radius = 0.25;
+      // spheres[1].center = vec3(-2.0, 1.0, 0.0);
 
-      spheres[1].mat.color = vec3(0.8, 0.8, 0.1);
-      spheres[1].mat.metallic = 0.5;
-      spheres[1].mat.roughness = 0.5;
-      spheres[1].mat.mat_type = 3;
+      // spheres[1].mat.color = vec3(0.8, 0.8, 0.1);
+      // spheres[1].mat.metallic = 0.5;
+      // spheres[1].mat.roughness = 0.5;
+      // spheres[1].mat.mat_type = 3;
+
+      for (int i = 0; i < 4; i++)
+      {
+            for (int j = 0; j < 4; j++)
+            {
+                  spheres[i * 4 + j].radius = 0.25;
+                  spheres[i * 4 + j].center = vec3(i * 1.0, 0.0, j * 1.0);
+                  // (0, 0), (0, 0.5), (0, 1.0,), (0, 1.5)
+                  // (0.5, 0), 
+                  spheres[i * 4 + j].mat.color = vec3(0.7, 0.7, 0.0);
+                  spheres[i * 4 + j].mat.metallic = (i * 4 + j) * (1/16);
+                  spheres[i * 4 + j].mat.roughness = (i * 4 + j) * (1/16);
+                  spheres[i * 4 + j].mat.mat_type = 1;
+            }
+      }
 
 
 
@@ -377,11 +397,12 @@ void main()
       Sphere sphere = nearest_intersected_object(spheres, ray);
       Hit hit = sphereIntersectPoint(sphere, ray);
       vec3 intersection_to_light = normalize(light_pos.xyz - hit.point);
-      // vec3 finalFinalColor = vec3(0.0);
-      // for (int i = 0; i < 10; i++)
-      // {
-      //       finalFinalColor += pixelColor(spheres, gl_FragCoord.xy);
-      // }
-      //outColor = vec4(finalFinalColor, 1.0);
-      outColor = vec4(pixelColor(spheres, gl_FragCoord.xy), 1.0);
+      vec3 final_color = vec3(0.0);
+      for (int i = 0; i < 10; i++)
+      {
+            final_color += pixelColor(spheres, gl_FragCoord.xy);
+      }
+      final_color /= 10;
+      outColor = vec4(final_color, 1.0);
+      //outColor = vec4(pixelColor(spheres, gl_FragCoord.xy), 1.0);
 }
