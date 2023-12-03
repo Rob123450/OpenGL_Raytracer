@@ -211,7 +211,7 @@ shaderProgram_skybox['cubeMapTex'] = 0
 
 # light and material properties
 material_color = (1.0, 0.1, 0.1)
-light_pos = np.array([0, 10, 0, None], dtype=np.float32)
+light_pos = np.array([-10, 10, -10, None], dtype=np.float32)
 # last component is for light type (0: directional, 1: point) which is changed by radio button
 # *************************************************************************
 # Obj and attributes
@@ -238,7 +238,7 @@ lightX_slider = gui.add_slider("light X angle", -180, 180, 0, resolution=1)
 camY_slider = gui.add_slider("camera Y angle", -180, 180, 0, resolution=1)
 camX_slider = gui.add_slider("camera X angle", -180, 180, 0, resolution=1)
 light_color_slider = gui.add_color_picker(label_text="Light Color", initial_color=(1.0, 1.0, 1.0))
-ambient_intensity_slider = gui.add_slider("Ambient Intensity", 1, 10, 1, resolution=0.1)
+ambient_intensity_slider = gui.add_slider("Ambient Intensity", 0, 1, 0.1, resolution=0.1)
 roughness_slider = gui.add_slider("Roughness", 0, 1, 0.5, resolution=0.01)
 metallic_slider = gui.add_slider("Metallic", 0, 1, 0.5, resolution=0.01)
 material_picker = gui.add_radio_buttons("Material", options_dict={"Iron":1, "Copper":2, "Gold":3, "Aluminum":4, "Silver":5}, initial_option="Gold")
@@ -246,6 +246,7 @@ material_picker = gui.add_radio_buttons("Material", options_dict={"Iron":1, "Cop
 # timing
 deltaTime = 0.0
 lastFrame = 0.0
+timer = 0.0
 
 # Run a loop to keep the program running
 draw = True
@@ -261,6 +262,8 @@ while draw:
     currentFrame = time.time()
     deltaTime = currentFrame - lastFrame
     lastFrame = currentFrame
+
+    timer += 0.01;
 
     input_handler()
 
@@ -285,9 +288,8 @@ while draw:
 
     lightYRotation = lightY_slider.get_value()
     lightXRotation = lightX_slider.get_value()
-    # light_pos[0] = np.cos(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
-    # light_pos[1] = np.sin(np.radians(lightXRotation))
-    # light_pos[2] = np.sin(np.radians(lightYRotation)) * np.cos(np.radians(lightXRotation))
+    light_pos[0] = 20 * np.sin(timer * 0.1)
+    light_pos[2] = 20 * np.cos(timer * 0.1)
 
     # Set uniforms
     # Set the uniform variables
