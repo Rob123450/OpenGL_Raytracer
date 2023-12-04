@@ -231,7 +231,7 @@ gui = SimpleGUI("Raytracing")
 
 # Create a slider for the rotation angle around the Z axis
 fov_slider = gui.add_slider("fov", 25, 90, 90, resolution=1)
-
+light_rot_check = gui.add_checkbox("Light Movement", initial_state=True)
 
 lightY_slider = gui.add_slider("light Y angle", -180, 180, 0, resolution=1)
 lightX_slider = gui.add_slider("light X angle", -180, 180, 0, resolution=1)
@@ -289,8 +289,10 @@ while draw:
 
     lightYRotation = lightY_slider.get_value()
     lightXRotation = lightX_slider.get_value()
-    light_pos[0] = 20 * np.sin(timer * 0.1)
-    light_pos[2] = 20 * np.cos(timer * 0.1)
+
+    if (light_rot_check.get_value()):
+        light_pos[0] = 20 * np.sin(timer * 0.1)
+        light_pos[2] = 20 * np.cos(timer * 0.1)
 
     # Set uniforms
     # Set the uniform variables

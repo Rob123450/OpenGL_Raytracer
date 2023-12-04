@@ -228,7 +228,6 @@ vec3 computePBR(Sphere sphere, Ray ray, Hit hit)
       return vec3(ambientColor + specularColor + diffuseColor);
 }
 
-
 vec3 pixelColor(Sphere[16] spheres, Plane[1] planes, vec2 pixel)
 {
       float reflection = 1.0;
@@ -355,8 +354,8 @@ void main()
       Sphere[16] spheres;
       Plane[1] planes;
 
-      planes[0].center = vec3(0.0, -1.0, 0.0);
-      planes[0].size = vec3(10.0, 0.0, 10.0);
+      planes[0].center = vec3(1.5, -1.0, 1.5);
+      planes[0].size = vec3(5.0, 0.0, 5.0);
       planes[0].normal = vec3(0.0, 1.0, 0.0);
       planes[0].mat.color = vec3(1.0);
       planes[0].mat.metallic = 0.0;
