@@ -108,7 +108,7 @@ def input_handler():
 
         dx, dy = pg.mouse.get_rel()
         # reset mouse position to center
-        #pygame.mouse.set_pos(screen_center)
+        pygame.mouse.set_pos(screen_center)
         yaw += mouseSens * dx
         pitch -= mouseSens * dy
 
@@ -141,8 +141,6 @@ pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
 pg.display.gl_set_attribute(pg.GL_STENCIL_SIZE, 8)
 
 # Create a window for graphics using OpenGL
-# width = 900
-# height = 500
 width = 1920
 height = 1080
 
@@ -207,8 +205,6 @@ skybox_id = load_cubemap_texture(cube_map_images)
 
 shaderProgram_skybox['cubeMapTex'] = 0
 
-
-
 # light and material properties
 material_color = (1.0, 0.1, 0.1)
 light_pos = np.array([-10, 10, -10, None], dtype=np.float32)
@@ -219,9 +215,7 @@ obj = ObjLoader("objects/square.obj")
 vao_obj, vbo_obj, n_vertices_obj = build_buffers(obj)
 
 # matrices
-#model_mat = pyrr.matrix44.create_from_translation(-obj.center)
 scaling_mat = pyrr.matrix44.create_from_scale(pyrr.Vector3([0.5, 0.5, 0.5]))
-#model_mat = pyrr.matrix44.multiply(model_mat, scaling_mat)
 model_mat = scaling_mat
 
 
@@ -232,16 +226,7 @@ gui = SimpleGUI("Raytracing")
 # Create a slider for the rotation angle around the Z axis
 fov_slider = gui.add_slider("fov", 25, 90, 90, resolution=1)
 light_rot_check = gui.add_checkbox("Light Movement", initial_state=True)
-
-lightY_slider = gui.add_slider("light Y angle", -180, 180, 0, resolution=1)
-lightX_slider = gui.add_slider("light X angle", -180, 180, 0, resolution=1)
-camY_slider = gui.add_slider("camera Y angle", -180, 180, 0, resolution=1)
-camX_slider = gui.add_slider("camera X angle", -180, 180, 0, resolution=1)
-light_color_slider = gui.add_color_picker(label_text="Light Color", initial_color=(1.0, 1.0, 1.0))
 ambient_intensity_slider = gui.add_slider("Ambient Intensity", 0, 1, 0.1, resolution=0.1)
-roughness_slider = gui.add_slider("Roughness", 0, 1, 0.5, resolution=0.01)
-metallic_slider = gui.add_slider("Metallic", 0, 1, 0.5, resolution=0.01)
-material_picker = gui.add_radio_buttons("Material", options_dict={"Iron":1, "Copper":2, "Gold":3, "Aluminum":4, "Silver":5}, initial_option="Gold")
 
 # timing
 deltaTime = 0.0
@@ -263,16 +248,7 @@ while draw:
     deltaTime = currentFrame - lastFrame
     lastFrame = currentFrame
 
-    timer += 0.01;
-
     input_handler()
-
-
-    #rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(camX_slider.get_value()))
-    #rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
-    #rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
-
-
 
     view_mat = pyrr.matrix44.create_look_at(eye, eye + camera_forward, up)
     projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(), aspect, near,  far)
@@ -282,15 +258,9 @@ while draw:
 
     inverseViewProjection_mat = pyrr.matrix44.inverse(pyrr.matrix44.multiply(view_mat_without_translation, projection_mat))
 
-    #view_mat = pyrr.matrix44.create_look_at(eye, target, up)
-    #projection_mat = pyrr.matrix44.create_perspective_projection_matrix(fov_slider.get_value(),
-                                                                        #aspect, near,  far)
-
-
-    lightYRotation = lightY_slider.get_value()
-    lightXRotation = lightX_slider.get_value()
-
+    # Rotates light around scene
     if (light_rot_check.get_value()):
+        timer += 0.01;
         light_pos[0] = 20 * np.sin(timer * 0.1)
         light_pos[2] = 20 * np.cos(timer * 0.1)
 
