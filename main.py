@@ -267,6 +267,7 @@ while draw:
 
     input_handler()
 
+
     #rotateX_mat = pyrr.matrix44.create_from_x_rotation(np.deg2rad(camX_slider.get_value()))
     #rotation_mat = pyrr.matrix44.multiply(rotateX_mat, rotateY_mat)
     #rotated_eye = pyrr.matrix44.apply_to_vector(rotation_mat, eye)
