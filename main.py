@@ -10,6 +10,7 @@ from guiV3 import SimpleGUI
 from objLoaderV4 import ObjLoader
 import shaderLoaderV3
 import pyrr
+from shaderMath import get_vector_in_hemisphere
 from utils import load_image
 
 # Handles keyboard inputs
@@ -227,6 +228,9 @@ while draw:
 
     shaderProgram_sphere["ambient_intensity"] = ambient_intensity_slider.get_value()
     shaderProgram_sphere["lightColor"] = [1.0, 1.0, 1.0]
+    
+    vector = get_vector_in_hemisphere(camera_forward)
+    shaderProgram_sphere["ray_0"] = vector
 
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_id)

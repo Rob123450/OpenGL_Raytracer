@@ -19,6 +19,8 @@ uniform vec2 resolution;
 uniform vec3 cameraU;
 uniform vec3 cameraV;
 uniform vec3 cameraW;
+uniform vec3 ray_0;
+
 //uniform vec3 cameraEye;
 uniform float fov;
 
@@ -246,7 +248,7 @@ vec3 pixelColor(Sphere[16] spheres, Plane[1] planes, vec2 pixel)
       bool is_shadowed;
 
       // Number of bounces
-      for (int i = 0; i < 10; i++)
+      for (int i = 0; i < 2; i++)
       {
             closest_sphere = nearest_intersected_object(spheres, ray);
             Hit closest_object = Hit(INFINITY, vec3(0.0), vec3(0.0));
@@ -379,6 +381,7 @@ void main()
       }
 
       Ray ray = getRay(gl_FragCoord.xy);
+      ray.direction = ray_0;
       Sphere sphere = nearest_intersected_object(spheres, ray);
       Hit hit = sphereIntersectPoint(sphere, ray);
       vec3 intersection_to_light = normalize(light_pos.xyz - hit.point);
